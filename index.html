@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>iOS Scientific Calculator</title>
+
+<style>
+:root{
+  --bg:#000000;
+  --num:#333333;
+  --func:#A5A5A5;
+  --op:#FF9500;
+  --white:#FFFFFF;
+  --black:#000000;
+}
+
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+}
+
+body{
+  background:#111;
+  font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display",sans-serif;
+  min-height:100vh;
+  padding:20px;
+  color:white;
+}
+
+.layout{
+  max-width:1000px;
+  margin:auto;
+  display:grid;
+  gap:20px;
+}
+
+@media(min-width:900px){
+  .layout{
+    grid-template-columns:400px 1fr;
+  }
+}
+
+.calculator{
+  background:var(--bg);
+  border-radius:32px;
+  padding:20px;
+}
+
+.display{
+  text-align:right;
+  font-size:clamp(2.5rem,8vw,4rem);
+  min-height:90px;
+  display:flex;
+  align-items:end;
+  justify-content:flex-end;
+  margin-bottom:20px;
+  overflow:hidden;
+}
+
+.sci-grid{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:10px;
+  margin-bottom:10px;
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:10px;
+}
+
+button{
+  height:72px;
+  border:none;
+  border-radius:999px;
+  font-size:1.4rem;
+  cursor:pointer;
+  transition:.15s;
+  color:white;
+  position:relative;
+  overflow:hidden;
+}
+
+button:hover{
+  filter:brightness(1.1);
+}
+
+button:active{
+  transform:scale(.92);
+}
+
+button::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:rgba(255,255,255,.15);
+  opacity:0;
+}
+
+button:active::after{
+  opacity:1;
+}
+
+.number{
+  background:var(--num);
+}
+
+.function{
+  background:var(--func);
+  color:black;
+}
+
+.operator{
+  background:var(--op);
+}
+
+.zero{
+  grid-column:span 2;
+  text-align:left;
+  padding-left:28px;
+}
+
+.history{
+  background:#111;
+  border-radius:24px;
+  padding:20px;
+}
+
+.history-title{
+  margin-bottom:15px;
+  color:#999;
+}
+
+.history-item{
+  background:#1a1a1a;
+  padding:12px;
+  border-radius:12px;
+  margin-bottom:10px;
+  cursor:pointer;
+}
+
+.history-item:hover{
+  background:#252525;
+}
+</style>
+</head>
+
+<body>
+
+<div class="layout">
+
+<div class="calculator">
+
+<div class="display" id="display">0</div>
+
+<div class="sci-grid">
+
+<button class="function">sin</button>
+<button class="function">cos</button>
+<button class="function">tan</button>
+<button class="function">log</button>
+<button class="function">ln</button>
+
+<button class="function">√</button>
+<button class="function">x²</button>
+<button class="function">π</button>
+<button class="function">%</button>
+<button class="function">+/-</button>
+
+</div>
+
+<div class="grid">
+
+<button class="function">AC</button>
+<button class="function">(</button>
+<button class="function">)</button>
+<button class="operator">÷</button>
+
+<button class="number">7</button>
+<button class="number">8</button>
+<button class="number">9</button>
+<button class="operator">×</button>
+
+<button class="number">4</button>
+<button class="number">5</button>
+<button class="number">6</button>
+<button class="operator">−</button>
+
+<button class="number">1</button>
+<button class="number">2</button>
+<button class="number">3</button>
+<button class="operator">+</button>
+
+<button class="number zero">0</button>
+<button class="number">.</button>
+<button class="operator">=</button>
+
+</div>
+
+</div>
+
+<div class="history">
+
+<h3 class="history-title">Calculation History</h3>
+
+<button class="function" id="clearHistory" style="width:100%;margin-bottom:15px">
+Clear History
+</button>
+
+<div id="historyList"></div>
+
+</div>
+
+</div>
+
+<script>
+
+const display = document.getElementById("display");
+const historyList = document.getElementById("historyList");
+
+let expression = "";
+
+loadHistory();
+
+function updateDisplay(value){
+  display.textContent = value;
+}
+
+function saveHistory(text){
+  const history =
+    JSON.parse(localStorage.getItem("calc-history") || "[]");
+
+  history.unshift(text);
+
+  localStorage.setItem(
+    "calc-history",
+    JSON.stringify(history.slice(0,50))
+  );
+
+  loadHistory();
+}
+
+function loadHistory(){
+
+  const history =
+    JSON.parse(localStorage.getItem("calc-history") || "[]");
+
+  historyList.innerHTML = "";
+
+  history.forEach(item=>{
+    const div=document.createElement("div");
+
+    div.className="history-item";
+
+    div.textContent=item;
+
+    div.onclick=()=>{
+      const result=item.split(" = ")[1];
+      expression=result;
+      updateDisplay(result);
+    };
+
+    historyList.appendChild(div);
+  });
+}
+
+function evaluateExpression(){
+
+  try{
+
+    const jsExp = expression
+      .replace(/÷/g,"/")
+      .replace(/×/g,"*")
+      .replace(/−/g,"-");
+
+    const result = eval(jsExp);
+
+    saveHistory(expression + " = " + result);
+
+    expression = String(result);
+
+    updateDisplay(result);
+
+  }
+  catch{
+    updateDisplay("Error");
+    expression="";
+  }
+}
+
+document
+.querySelectorAll("button")
+.forEach(btn=>{
+
+  btn.addEventListener("click",()=>{
+
+    const key = btn.textContent;
+
+    if(key==="Clear History"){
+      localStorage.removeItem("calc-history");
+      loadHistory();
+      return;
+    }
+
+    if(key==="AC"){
+      expression="";
+      updateDisplay("0");
+      return;
+    }
+
+    if(key==="="){
+      evaluateExpression();
+      return;
+    }
+
+    if(key==="π"){
+      expression += Math.PI;
+      updateDisplay(expression);
+      return;
+    }
+
+    if(key==="+/-"){
+      expression = String(-(parseFloat(expression)||0));
+      updateDisplay(expression);
+      return;
+    }
+
+    if(key==="%"){
+      expression = String((parseFloat(expression)||0)/100);
+      updateDisplay(expression);
+      return;
+    }
+
+    if(key==="sin"){
+      expression = String(
+        Math.sin((parseFloat(expression)||0)*Math.PI/180)
+      );
+      updateDisplay(expression);
+      return;
+    }
+
+    if(key==="cos"){
+      expression = String(
+        Math.cos((parseFloat(expression)||0)*Math.PI/180)
+      );
+      updateDisplay(expression);
+      return;
+    }
+
+    if(key==="tan"){
+      expression = String(
+        Math.tan((parseFloat(expression)||0)*Math.PI/180)
+      );
+      updateDisplay(expression);
+      return;
+    }
+
+    if(key==="√"){
+      expression = String(
+        Math.sqrt(parseFloat(expression)||0)
+      );
+      updateDisplay(expression);
+      return;
+    }
+
+    if(key==="x²"){
+      const n=parseFloat(expression)||0;
+      expression = String(n*n);
+      updateDisplay(expression);
+      return;
+    }
+
+    if(key==="log"){
+      expression = String(
+        Math.log10(parseFloat(expression)||1)
+      );
+      updateDisplay(expression);
+      return;
+    }
+
+    if(key==="ln"){
+      expression = String(
+        Math.log(parseFloat(expression)||1)
+      );
+      updateDisplay(expression);
+      return;
+    }
+
+    expression += key;
+    updateDisplay(expression);
+
+  });
+
+});
+
+</script>
+
+</body>
+</html>
